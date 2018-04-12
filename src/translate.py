@@ -5,11 +5,12 @@
 # @Last Modified by:   hzzhangjiahao1@corp.netease.com
 # @Last Modified time: 2018-02-12 21:14:48
 
+import re
 import urllib2
 import json
 import sys
 from xml.etree import ElementTree as ET
-from urllib import urlencode
+from urllib import urlencode, quote
 
 # Python2.5 初始化后会删除 sys.setdefaultencoding 这个方法，我们需要重新载入
 reload(sys)
@@ -22,15 +23,27 @@ def trans(word):
     request.add_header("Host", "fanyi.baidu.com")
     result = json.load(urllib2.urlopen(request))
 
+    if re.search('[\u4e00-\u9fa5]', word):
+        lan = '#zh/en'
+    else:
+        lan = '#en/zh'
+        
     translated = result.get('data')
     items = []
-    for item in translated:
+    if translated:
+        for item in translated:
+            items.append({
+                'title': unicode(item.get('k').strip(',')),
+                'subtitle': unicode(item.get('v').strip(',')),
+                'arg': 'http://fanyi.baidu.com/%s/%s' % (lan, unicode(item.get('k'))),
+                'icon': 'icon.jpg'
+            })
+    else:
         items.append({
-            'title': unicode(item.get('k').strip(',')),
-            'subtitle': unicode(item.get('v').strip(',')),
-            'arg': 'https://www.baidu.com/#ie=UTF-8&wd=%s' % (unicode(item.get('k'))),
+            'title': u'百度翻译 ' + unicode(word),
+            'arg': 'http://fanyi.baidu.com/%s/%s' % (lan, quote(word)),
             'icon': 'icon.jpg'
-        })
+        })        
 
     return generate_xml(items)
 
